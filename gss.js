@@ -124,7 +124,7 @@ class gss_render {
         document.head.appendChild(container);
     }
 }
-(gss_init = () => {
+(() => {
     let styleSheets = $(`link[rel="gss/stylesheet"]`);
     console.log(styleSheets);
     styleSheets.forEach((sheet) => {
