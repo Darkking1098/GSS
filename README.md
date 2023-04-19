@@ -1,4 +1,9 @@
 # GSS
+
+### About
+
+GSS in built with grapple, so you have to include grapple.js as well
+
 ### Grapple style sheets
 
 GSS is css pre-processor that makes styling more easy.
