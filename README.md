@@ -1,6 +1,6 @@
 # GSS
 
-### About
+### Requirements
 
 GSS in built with grapple, so you have to include grapple.js as well
 
