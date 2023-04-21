@@ -1,138 +1,173 @@
-grapple.css = [];
-grapple.css_def = [];
-class gss_render {
-    constructor(sheet) {
-        this.filter(sheet);
-    }
-    filter(sheet) {
-        // removing comments
-        sheet = sheet.replace(/\/\*(.*)\*\//g, " ");
-        // reming multiple spaces
-        sheet = sheet.replace(/\s\s+/g, "");
-        // removing next lines
-        sheet = sheet.replace(/(\n|\r)+/g, " ");
-        // adding next lines
-        sheet = sheet.replace(/}/g, "}\n");
-        // removing spaces from each line
-        sheet = sheet
-            .replace(/\n /g, "\n")
-            .replace(/ ?{ ?/g, "{")
-            .replace(/ ?} ?/g, "}");
-        this.smash(sheet);
-    }
-    smash(sheet) {
-        let sheets = sheet.trim().split("\n");
-        let styles = [];
-        sheets.forEach((sheet) => {
-            let raw_selector = sheet.match(/(.*?){/);
-            if (raw_selector[1].includes("extend")) {
-                raw_selector = raw_selector[1].match(/(.*)extend(.*)/);
-            } else if (raw_selector[1].includes("+")) {
-                raw_selector = raw_selector[1].match(/(.*)\+\+(.*)/);
-            }
-            let selector = raw_selector[1];
-            let extended = raw_selector[2] || "";
-            let style = sheet.match(/{(.*?)}/)[0];
-            let single_style = {
-                selector: selector.trim(),
-                extended: extended.trim(),
-                style: style.trim(),
-            };
-            styles.push(single_style);
-        });
-        this.render_styles(styles);
-    }
-    render_styles(styles) {
-        let rendered = [];
-        styles.forEach((style) => {
-            let css = {};
-            style.style
-                .substr(1, style.style.length - 2)
-                .split(";")
-                .forEach((prop) => {
-                    if (prop) {
-                        let z = prop.split(":");
-                        css[z[0].trim()] = z[1].trim();
-                    }
-                });
-            style.style = css;
-            rendered.push(style);
-        });
-        this.render(rendered);
-    }
-    resolve_extend(styles) {
-        let raw_styles = [];
-        styles.forEach((style) => {
-            let extended_css = style.style;
-            let extendd = style.extended.split(",");
-            for (let i = 0; i < grapple.css.length; i++) {
-                if (extendd.includes(grapple.css[i].selector)) {
-                    extended_css = {
-                        ...grapple.css[i]["css"],
-                        ...extended_css,
-                    };
-                    extendd.splice(extendd.indexOf(grapple.css[i].selector), 1);
-                }
-                if (extendd.length === 0) break;
-            }
-            let ss = { selector: style.selector };
-            ss["css"] = extended_css ? extended_css : style.style;
-            if (ss.selector == "@def") {
-                grapple.css_def = extended_css;
-            } else {
-                grapple.css.push(ss);
-                raw_styles.push(ss);
-            }
-        });
-        return raw_styles;
-    }
-    resolve_def(styles) {
-        styles.forEach((style) => {
-            if (style.selector.includes("@")) {
-                let defs = style.selector.split("@").map((e) => e.split("-"));
-                for (let i = 1; i < defs.length; i++) {
-                    style.css[grapple.css_def[defs[i][0]]] = defs[i][1];
-                }
-                style.selector = defs[0][0];
-            }
-        });
-        return styles;
-    }
-    render(styles) {
-        let raw_styles = this.resolve_extend(styles);
-        raw_styles = this.resolve_def(raw_styles);
-        this.convert(raw_styles);
-    }
-    convert(rendered) {
-        let str = "";
-        rendered.forEach((test_data) => {
-            let text = "";
-            text += test_data.selector;
-            let prop = "{";
-            let keys = Object.keys(test_data.css);
-            for (let i = 0; i < keys.length; i++) {
-                prop += keys[i] + ":" + test_data.css[keys[i]] + ";";
-            }
-            text += prop + "}\n";
-            str += text;
-        });
-        this.deploy(str);
-    }
-    deploy(sheet) {
-        let container = document.createElement("style");
-        container.insert(1, sheet);
-        document.head.appendChild(container);
-    }
-}
-(() => {
-    let styleSheets = $(`link[rel="gss/stylesheet"]`);
-    console.log(styleSheets);
-    styleSheets.forEach((sheet) => {
+((factory) => {
+    factory();
+})(() => {
+    const EXTERNAL = $(`link[rel="gss/stylesheet"]`);
+    const INTERNAL = ""; // Next Update;
+    const REG = /^( {4}|\t)/;
+    let CONTAINER = document.createElement("style");
+
+    EXTERNAL.forEach((sheet) => {
         ajax({
             url: sheet.href,
             success: (res) => {
-                new gss_render(res);
+                gss_init(res);
             },
         });
     });
-})();
+
+    /** Getting inner data or text */
+    function gss_init(data) {
+        data = data
+            .replace(/\t/g, "    ")
+            .split("\r\n")
+            .filter((x) => x);
+        let smashed = smash(data);
+        let rendered = render(smashed);
+        let final = resolve_ss(rendered);
+        console.log(rendered);
+    }
+    function smash(data) {
+        let st = [];
+        let raw = [];
+        while (data.length > 0) {
+            let r = data.shift();
+            if (REG.test(r)) {
+                raw.push(r);
+            } else {
+                if (raw.length > 0) {
+                    st.push(raw);
+                    raw = [];
+                }
+                raw.push(r);
+            }
+        }
+        st.push(raw);
+        return factor(st);
+    }
+    function factor(data) {
+        let final = [];
+        data.forEach((d) => {
+            let m = refactor(d);
+            final.push(m);
+        });
+        return final;
+    }
+    function refactor(data) {
+        let selector = data.shift().trim();
+        let elem = { selector, props: [], child: [] };
+        data = data.map((x) => x.replace(REG, ""));
+        while (data.length > 0) {
+            let d = data[0];
+            if (!d.startsWith(":") && /:/.test(d.substr(1))) {
+                elem.props.push(d);
+                data.shift();
+            } else {
+                break;
+            }
+        }
+        if (data.length > 0) {
+            elem.child = smash(data);
+        }
+        return elem;
+    }
+    function render(data) {
+        let simplified = [];
+        data.forEach((node) => {
+            let s = node.selector;
+            if (s.startsWith("@")) {
+                if (s == "@def") resolve_def(node.props);
+                if (s == "@color") resolve_color(node.props);
+            } else simplified.push(resolve_selector(node));
+        });
+        return simplified;
+    }
+    function resolve_def(defs) {
+        for (let i = 0; i < defs.length; i++) {
+            let b = defs[i].split(":");
+            grapple.gss.def[b[0]] = b[1].split(",");
+        }
+    }
+    function resolve_color(defs) {
+        for (let i = 0; i < defs.length; i++) {
+            let b = defs[i].split(":");
+            let bigint = parseInt(b[1].substr(1), 16);
+            let r = (bigint >> 16) & 255;
+            let g = (bigint >> 8) & 255;
+            let bl = bigint & 255;
+            grapple.gss.color[b[0]] = r + "," + g + "," + bl;
+        }
+    }
+    function resolve_val(val) {
+        if (val.startsWith("@col/")) {
+            let raw = val.substr(5).split("-");
+            let c = grapple.gss.color[raw[0]] + "," + (raw[1]||100) / 100;
+            return `rgba(${c})`;
+        }
+        return val;
+    }
+    function resolve_selector(node) {
+        let raw_selector = node.selector;
+        let selector,
+            extended = [],
+            props = {},
+            child = [];
+        if (node.selector.includes("++")) {
+            raw_selector = node.selector.match(/(.*)\+\+(.*)/);
+            selector = raw_selector[1].trim();
+            extended = raw_selector[2].split(",");
+        } else {
+            selector = node.selector.trim();
+        }
+        if (selector.includes("@")) {
+            let defs = selector.split("@");
+            selector = defs.shift().trim();
+            node.props.push(...defs.map((c) => "@" + c.replace("-", ":")));
+        }
+        node.props.forEach((prop) => {
+            [prop, val] = prop.split(":");
+            let p = prop.startsWith("@")
+                ? grapple.gss.def[prop.substr(1)]
+                : prop;
+            let v = val.includes("@") ? resolve_val(val, selector) : val;
+            props[p] = v.trim();
+        });
+        for (let j = 0; j < extended.length; j++) {
+            grapple.gss.styles.some((el) => {
+                if (el.selector == extended[j].trim()) {
+                    props = { ...el.props, ...props };
+                }
+            });
+        }
+        node.child.forEach((c) => {
+            child.push(resolve_selector(c));
+        });
+        let elem = { selector, props, child };
+        grapple.gss.styles.push(elem);
+        return elem;
+    }
+    function resolve_ss(data) {
+        let str = "";
+        data.forEach((elem) => {
+            toStr(elem);
+        });
+    }
+    function toStr(elem, parent) {
+        let text = parent || "";
+        if (elem.selector.startsWith(":")) text += elem.selector + "{";
+        else text += " " + elem.selector + "{";
+        let keys = Object.keys(elem.props);
+        for (let i = 0; i < keys.length; i++) {
+            text += keys[i] + ":" + elem.props[keys[i]] + ";";
+        }
+        text += "}";
+        deploy(text);
+        parent=elem.selector;
+        elem.child.forEach(elem => {
+            toStr(elem, parent);
+        });
+    }
+    function deploy(sheet) {
+        CONTAINER.append(sheet);
+        document.head.appendChild(CONTAINER);
+    }
+});
