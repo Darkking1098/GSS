@@ -19,12 +19,12 @@
     function gss_init(data) {
         data = data
             .replace(/\t/g, "    ")
+            .replace(/##(.*?)##/gs, "")
             .split("\r\n")
             .filter((x) => x);
         let smashed = smash(data);
         let rendered = render(smashed);
-        let final = resolve_ss(rendered);
-        console.log(rendered);
+        resolve_ss(rendered);
     }
     function smash(data) {
         let st = [];
@@ -76,7 +76,8 @@
             let s = node.selector;
             if (s.startsWith("@")) {
                 if (s == "@def") resolve_def(node.props);
-                if (s == "@color") resolve_color(node.props);
+                else if (s == "@color") resolve_color(node.props);
+                else simplified.push(resolve_selector(node));
             } else simplified.push(resolve_selector(node));
         });
         return simplified;
@@ -84,12 +85,15 @@
     function resolve_def(defs) {
         for (let i = 0; i < defs.length; i++) {
             let b = defs[i].split(":");
+            if (["max", "min"].includes(b[0])) {
+                throw new Error(b[0] + " is reserved keyword");
+            }
             grapple.gss.def[b[0]] = b[1].split(",");
         }
     }
-    function resolve_color(defs) {
-        for (let i = 0; i < defs.length; i++) {
-            let b = defs[i].split(":");
+    function resolve_color(col) {
+        for (let i = 0; i < col.length; i++) {
+            let b = col[i].split(":");
             let bigint = parseInt(b[1].substr(1), 16);
             let r = (bigint >> 16) & 255;
             let g = (bigint >> 8) & 255;
@@ -100,7 +104,7 @@
     function resolve_val(val) {
         if (val.startsWith("@col/")) {
             let raw = val.substr(5).split("-");
-            let c = grapple.gss.color[raw[0]] + "," + (raw[1]||100) / 100;
+            let c = grapple.gss.color[raw[0]] + "," + (raw[1] || 100) / 100;
             return `rgba(${c})`;
         }
         return val;
@@ -118,7 +122,7 @@
         } else {
             selector = node.selector.trim();
         }
-        if (selector.includes("@")) {
+        if (selector.includes("@") && !selector.startsWith("@")) {
             let defs = selector.split("@");
             selector = defs.shift().trim();
             node.props.push(...defs.map((c) => "@" + c.replace("-", ":")));
@@ -129,6 +133,7 @@
                 ? grapple.gss.def[prop.substr(1)]
                 : prop;
             let v = val.includes("@") ? resolve_val(val, selector) : val;
+            console.log(p, v);
             props[p] = v.trim();
         });
         for (let j = 0; j < extended.length; j++) {
@@ -146,10 +151,20 @@
         return elem;
     }
     function resolve_ss(data) {
-        let str = "";
         data.forEach((elem) => {
+            if (elem.selector.startsWith("@")) {
+                resolve_special(elem);
+            } else {
+                toStr(elem);
+            }
+        });
+    }
+    function resolve_special(elem) {
+        deploy(elem.selector + "{");
+        elem.child.forEach((elem) => {
             toStr(elem);
         });
+        deploy("}");
     }
     function toStr(elem, parent) {
         let text = parent || "";
@@ -161,8 +176,8 @@
         }
         text += "}";
         deploy(text);
-        parent=elem.selector;
-        elem.child.forEach(elem => {
+        parent = elem.selector;
+        elem.child.forEach((elem) => {
             toStr(elem, parent);
         });
     }
