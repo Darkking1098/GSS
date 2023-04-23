@@ -15,6 +15,5 @@ GSS is css pre-processor that makes styling more easy.
  - give capabilty to define own shorten syntax
  - Added color modifier
  - Indentation based structure
-
-##### Update
- - screen size compatibility with selectors and style props
+ - inline screen size compatibility with selectors 
+ - inline screen size compatibility style props
