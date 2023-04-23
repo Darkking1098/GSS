@@ -68,6 +68,9 @@
             STYLES = [];
             deploy(text);
         });
+        STYLES = [];
+        MAX_SIZE = {};
+        MIN_SIZE = {};
         EXTRA = [];
     }
     function create_clusters(data) {
