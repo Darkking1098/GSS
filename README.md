@@ -20,3 +20,6 @@ GSS is css pre-processor that makes styling more easy.
  
  ### Functions
  - `extend` `++`
+ ```
+ .temp ++ .cool
+ ```
