@@ -1,188 +1,272 @@
 ((factory) => {
     factory();
 })(() => {
+    function getCol(val) {
+        let raw = val.substr(5).split("-");
+        let c = grapple.gss.color[raw[0]] + "," + (raw[1] || 100) / 100;
+        return `rgba(${c})`;
+    }
+    /* Loading external stylesheets*/
     const EXTERNAL = $(`link[rel="gss/stylesheet"]`);
-    const INTERNAL = ""; // Next Update;
-    const REG = /^( {4}|\t)/;
+    /* Loading internal stylesheets*/
+    const INTERNAL = "";
+    /** Default container to insert style */
     let CONTAINER = document.createElement("style");
+    document.head.appendChild(CONTAINER);
+    /* Extra Styles */
+    let STYLES = [];
+    let MAX_SIZE = {};
+    let MIN_SIZE = {};
+    let EXTRA = [];
+    /** RegEx to match tabs and spaces */
+    const REG = /^( {4}|\t)/;
+    const COL_REG = /@col\/([^ ,\)]+)/;
 
+    /** Fetching data from external gss files */
     EXTERNAL.forEach((sheet) => {
-        ajax({
-            url: sheet.href,
-            success: (res) => {
-                gss_init(res);
-            },
-        });
+        ajax({ url: sheet.href, success: (res) => __init__(res) });
     });
-
-    /** Getting inner data or text */
-    function gss_init(data) {
-        data = data
+    function __init__(sheet) {
+        /* Getting Data  ready for processing */
+        let data = sheet
             .replace(/\t/g, "    ")
             .replace(/##(.*?)##/gs, "")
             .split("\r\n")
-            .filter((x) => x);
-        let smashed = smash(data);
-        let rendered = render(smashed);
-        resolve_ss(rendered);
+            .filter((x) => {
+                if (x.trim()) return x;
+            });
+        create_clusters(data).forEach((data) => {
+            render(data);
+        });
+        STYLES.forEach((data) => {
+            let text = toStr(data);
+            deploy(text);
+        });
+        grapple.gss.style = [...grapple.gss.styles, ...STYLES];
+        STYLES = [];
+        Object.keys(MAX_SIZE).forEach((k) => {
+            let text = `@media screen and (max-width:${k}px){`;
+            MAX_SIZE[k].forEach((e) => (text += toStr(e)));
+            text += "}";
+            deploy(text);
+        });
+        Object.keys(MIN_SIZE).forEach((k) => {
+            let text = `@media screen and (min-width:${k}px){`;
+            MIN_SIZE[k].forEach((e) => (text += toStr(e)));
+            text += "}";
+            deploy(text);
+        });
+        EXTRA.forEach((elem) => {
+            text = elem.shift() + "{";
+            elem = elem.map((x) => x.replace(REG, ""));
+            create_clusters(elem).forEach((elem) => {
+                render(elem);
+            });
+            STYLES.forEach((data) => {
+                text += toStr(data);
+            });
+            STYLES = [];
+            deploy(text);
+        });
+        EXTRA = [];
     }
-    function smash(data) {
-        let st = [];
-        let raw = [];
+    function create_clusters(data) {
+        data.push("");
+        let [groups, cluster] = [[], []];
         while (data.length > 0) {
-            let r = data.shift();
-            if (REG.test(r)) {
-                raw.push(r);
-            } else {
-                if (raw.length > 0) {
-                    st.push(raw);
-                    raw = [];
+            let line = data.shift();
+            if (!line.match(REG) && cluster.length > 0) {
+                if (cluster[0].startsWith("@")) {
+                    resolve_special(cluster);
+                } else {
+                    let x = create_group(cluster);
+                    groups = [...groups, ...x];
                 }
-                raw.push(r);
+                cluster = [];
             }
+            cluster.push(line);
         }
-        st.push(raw);
-        return factor(st);
+        return groups;
     }
-    function factor(data) {
-        let final = [];
-        data.forEach((d) => {
-            let m = refactor(d);
-            final.push(m);
-        });
-        return final;
+    function create_group(cluster) {
+        let r = [];
+        let elem = resolve_selector(cluster.shift());
+        cluster = cluster.map((x) => x.replace(REG, ""));
+        while (cluster.length > 0) {
+            let d = cluster[0];
+            if (!d.match(/^[:&]/) && /:/.test(d.substr(1))) {
+                elem.props.push(d.split(":").map((x) => x.trim()));
+                cluster.shift();
+            } else break;
+        }
+        r.push(elem);
+        if (cluster.length > 0)
+            r = [...r, ...checkChild(cluster, elem.selector)];
+        return r;
     }
-    function refactor(data) {
-        let selector = data.shift().trim();
-        let elem = { selector, props: [], child: [] };
-        data = data.map((x) => x.replace(REG, ""));
-        while (data.length > 0) {
-            let d = data[0];
-            if (!d.startsWith(":") && /:/.test(d.substr(1))) {
-                elem.props.push(d);
-                data.shift();
-            } else {
-                break;
+    function checkChild(child, parent) {
+        parent = parent.trim();
+        for (let i = 0; i < child.length; i++) {
+            let n = child[i];
+            console.log("--", n);
+            if (!REG.test(n)) {
+                if (n.startsWith("&")) n = parent + n.substr(1);
+                else if (n.startsWith(":")) n = parent + n;
+                else n = parent + " " + n;
             }
+            console.log("->", n);
+            child[i] = n;
         }
-        if (data.length > 0) {
-            elem.child = smash(data);
-        }
-        return elem;
+        return create_clusters(child);
     }
-    function render(data) {
-        let simplified = [];
-        data.forEach((node) => {
-            let s = node.selector;
-            if (s.startsWith("@")) {
-                if (s == "@def") resolve_def(node.props);
-                else if (s == "@color") resolve_color(node.props);
-                else simplified.push(resolve_selector(node));
-            } else simplified.push(resolve_selector(node));
-        });
-        return simplified;
-    }
-    function resolve_def(defs) {
-        for (let i = 0; i < defs.length; i++) {
-            let b = defs[i].split(":");
-            if (["max", "min"].includes(b[0])) {
-                throw new Error(b[0] + " is reserved keyword");
+    function resolve_special(cluster) {
+        sel = cluster[0].trim();
+        if (sel == "@def") {
+            cluster.shift();
+            for (let i = 0; i < cluster.length; i++) {
+                let b = cluster[i].split(":");
+                grapple.gss.def[b[0].trim()] = b[1].split(",");
             }
-            grapple.gss.def[b[0]] = b[1].split(",");
-        }
-    }
-    function resolve_color(col) {
-        for (let i = 0; i < col.length; i++) {
-            let b = col[i].split(":");
-            let bigint = parseInt(b[1].substr(1), 16);
-            let r = (bigint >> 16) & 255;
-            let g = (bigint >> 8) & 255;
-            let bl = bigint & 255;
-            grapple.gss.color[b[0]] = r + "," + g + "," + bl;
-        }
-    }
-    function resolve_val(val) {
-        if (val.startsWith("@col/")) {
-            let raw = val.substr(5).split("-");
-            let c = grapple.gss.color[raw[0]] + "," + (raw[1] || 100) / 100;
-            return `rgba(${c})`;
-        }
-        return val;
-    }
-    function resolve_selector(node) {
-        let raw_selector = node.selector;
-        let selector,
-            extended = [],
-            props = {},
-            child = [];
-        if (node.selector.includes("++")) {
-            raw_selector = node.selector.match(/(.*)\+\+(.*)/);
-            selector = raw_selector[1].trim();
-            extended = raw_selector[2].split(",");
+        } else if (sel == "@color") {
+            cluster.shift();
+            for (let i = 0; i < cluster.length; i++) {
+                let b = cluster[i].split(":");
+                let bigint = parseInt(b[1].substr(1), 16);
+                let r = (bigint >> 16) & 255;
+                let g = (bigint >> 8) & 255;
+                let bl = bigint & 255;
+                grapple.gss.color[b[0].trim()] = r + "," + g + "," + bl;
+            }
         } else {
-            selector = node.selector.trim();
+            EXTRA.push(cluster);
+        }
+    }
+    function resolve_selector(selector) {
+        let [raw_selector, props, extend] = ["", [], []];
+        if (selector.includes("++")) {
+            raw_selector = selector.match(/(.*)\+\+(.*)/);
+            selector = raw_selector[1].trim();
+            extend = raw_selector[2].split(",").map((x) => x.trim());
         }
         if (selector.includes("@") && !selector.startsWith("@")) {
             let defs = selector.split("@");
             selector = defs.shift().trim();
-            node.props.push(...defs.map((c) => "@" + c.replace("-", ":")));
+            props.push(...defs.map((c) => ("@" + c).split("-")));
         }
-        node.props.forEach((prop) => {
-            [prop, val] = prop.split(":");
-            let p = prop.startsWith("@")
+        return { selector, props, extend };
+    }
+    function render(data) {
+        let elem = { node: data.selector, props: {} };
+        elem.extend = data.extend;
+        let x,
+            extra = [];
+        data.props.forEach(([prop, val]) => {
+            while ((x = val.match(COL_REG))) {
+                val = val.replace(COL_REG, getCol(x[0]));
+            }
+            let props = prop.startsWith("@")
                 ? grapple.gss.def[prop.substr(1)]
-                : prop;
-            let v = val.includes("@") ? resolve_val(val, selector) : val;
-            console.log(p, v);
-            props[p] = v.trim();
+                : [prop];
+            let vals = val.trim().split(" @");
+            if (vals[0].startsWith("@")) {
+                val = "";
+                vals[0] = vals[0].substr(1);
+            } else {
+                val = vals.shift();
+            }
+            props.forEach((p) => {
+                if (val) elem.props[p] = val;
+            });
+            if (vals.length > 0) extra.push([props, vals]);
         });
-        for (let j = 0; j < extended.length; j++) {
-            grapple.gss.styles.some((el) => {
-                if (el.selector == extended[j].trim()) {
-                    props = { ...el.props, ...props };
-                }
+        addStyle(elem);
+        if (extra.length > 0) {
+            extra.forEach((e) => {
+                resolve_vals(elem.node, e);
             });
         }
-        node.child.forEach((c) => {
-            child.push(resolve_selector(c));
-        });
-        let elem = { selector, props, child };
-        grapple.gss.styles.push(elem);
-        return elem;
     }
-    function resolve_ss(data) {
-        data.forEach((elem) => {
-            if (elem.selector.startsWith("@")) {
-                resolve_special(elem);
-            } else {
-                toStr(elem);
+    function addStyle(elem) {
+        let p = false;
+        STYLES.forEach((style) => {
+            if (elem.extend.includes(style.node)) {
+                elem.props = { ...style.props, ...elem.props };
+                elem.extend.splice(elem.extend.indexOf(style.node), 1);
+            } else if (style.node == elem.node) {
+                style.props = { ...style.props, ...elem.props };
+                p = true;
+            }
+        });
+        if (elem.extend.length > 0) {
+            resolve_size_extend(elem);
+        }
+        // if (elem.extend) delete elem.extend;
+        if (!p) STYLES.push(elem);
+    }
+    function resolve_size_extend(elem) {
+        console.log(elem);
+        elem.extend.forEach((ext) => {
+            let x = ext.split("-");
+            let props;
+            STYLES.forEach((style) => {
+                if (x[2] == style.node) {
+                    props = style.props;
+                }
+            });
+            console.log(props);
+            let el = { props };
+            if (x[0] == "@max") {
+                if (!MAX_SIZE[x[1]]) MAX_SIZE[x[1]] = [];
+                el.node = elem.node;
+                MAX_SIZE[x[1]].push(el);
+            } else if (x[0] == "@min") {
+                if (!MIN_SIZE[x[1]]) MIN_SIZE[x[1]] = [];
+                el.node = elem.node;
+                MIN_SIZE[x[1]].push(el);
+            }
+            console.log(MAX_SIZE);
+            console.log(MIN_SIZE);
+        });
+    }
+    function resolve_vals(selector, [prop, data]) {
+        let elem = { props: {} };
+        data.forEach((d) => {
+            let x = d.split("-");
+            if (x[0] == "h") {
+                elem.node = selector + ":hover";
+                elem.extend = [];
+                prop.forEach((p) => {
+                    elem.props[p] = x[1];
+                });
+                addStyle(elem);
+            } else if (x[0] == "max") {
+                if (!MAX_SIZE[x[1]]) MAX_SIZE[x[1]] = [];
+                elem.node = selector;
+                prop.forEach((p) => {
+                    elem.props[p] = x[2];
+                });
+                MAX_SIZE[x[1]].push(elem);
+            } else if (x[0] == "min") {
+                if (!MIN_SIZE[x[1]]) MIN_SIZE[x[1]] = [];
+                elem.node = selector;
+                prop.forEach((p) => {
+                    elem.props[p] = x[2];
+                });
+                MIN_SIZE[x[1]].push(elem);
             }
         });
     }
-    function resolve_special(elem) {
-        deploy(elem.selector + "{");
-        elem.child.forEach((elem) => {
-            toStr(elem);
-        });
-        deploy("}");
-    }
-    function toStr(elem, parent) {
-        let text = parent || "";
-        if (elem.selector.startsWith(":")) text += elem.selector + "{";
-        else text += " " + elem.selector + "{";
+    function toStr(elem) {
+        let text = "";
+        text += elem.node + "{";
         let keys = Object.keys(elem.props);
         for (let i = 0; i < keys.length; i++) {
             text += keys[i] + ":" + elem.props[keys[i]] + ";";
         }
         text += "}";
-        deploy(text);
-        parent = elem.selector;
-        elem.child.forEach((elem) => {
-            toStr(elem, parent);
-        });
+        return text;
     }
-    function deploy(sheet) {
-        CONTAINER.append(sheet);
-        document.head.appendChild(CONTAINER);
+    function deploy(text) {
+        CONTAINER.append(text);
     }
 });
