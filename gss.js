@@ -263,6 +263,7 @@
         let text = "";
         text += elem.node + "{";
         let keys = Object.keys(elem.props);
+        if (keys.length == 0) return '';
         for (let i = 0; i < keys.length; i++) {
             text += keys[i] + ":" + elem.props[keys[i]] + ";";
         }
