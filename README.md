@@ -22,9 +22,10 @@ GSS is css pre-processor that makes styling more easy.
  - `@def` Define short syntax
  ```
 @def 
-    p:padding
-    px:padding-inline
-    br:border-radius
+    p:padding ## can be accessed as @p ##
+    px:padding-inline 
+    br:border-radius 
+    c:color 
     cube:width,height ## multiple properties ##
     shadow:box-shadow
 ```
@@ -41,9 +42,30 @@ GSS is css pre-processor that makes styling more easy.
     @p:100px
     margin:40px 20px
  ```
-   - Using defined Color
+   - `@col/color-opacity` Using defined Color
 ```
 .temp
     color:@col/pink 
     background:@col/red-10 ## -10 is opacity in percentage ##
+ ```
+   - Nesting elements
+```
+h1
+    @c:red
+    :hover
+        @c:@col/pink
+    span
+        background:black
+        @c:white
+        :hover
+            @c:black
+            background:red
+ ```
+    - `@h-` Inline Hovering
+```
+h1
+    @c:red @h-@col/pink-90
+    span
+        background:black @h-red
+        @c:white @h-black
  ```
