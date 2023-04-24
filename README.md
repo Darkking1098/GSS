@@ -22,6 +22,10 @@ GSS in built with grapple, so you have to include grapple.js as well
 <script src="https://darkking1098.github.io/GSS/gss.js"></script>
 <script src="https://darkking1098.github.io/GSS/grapple.js"></script>
 ```
+Link gss files to html and take rest
+```
+    <link rel="gss/stylesheet" href="css/index.gss">
+```
 
  ### Functions
  - `@def` Define short syntax
