@@ -163,12 +163,12 @@
             if (prop.includes("-")) {
                 x = x.split("-").map((t) => grapple.gss.def[t]);
                 y = [x[0] + "-" + x[1]];
-            } else if (prop.includes(",")) {
+            } else {
                 x = x.split(",");
                 x.forEach((m) => (y = [...y, ...grapple.gss.def[m]]));
             }
             return y;
-        } else return [prop];
+        } else return prop.split(",");
     }
     function render(data) {
         let elem = { node: data.selector, props: {} };

@@ -1,0 +1,156 @@
+@def
+    t:top
+    l:left
+    r:right
+    b:bottom
+    c:color
+    br:border-radius
+    bdr:border
+    bg:background
+    m:margin
+    p:padding
+    fs:font-size
+    fw:font-weight
+    cube:height,width
+    fg:flex-grow
+
+@color
+    prime: #0D6DFD
+    info: #0Dcaf0
+    error: #e70202
+    light: #f0f0f0
+    success: #39b400
+    warning: #ffc777
+    dark: #212529
+    prime_dark: #0a58ca
+    info_dark: #0aa3c2
+    error_dark: #c00000
+    light_dark: #cfcfcf
+    success_dark: #2d8f00
+    warning_dark: #ffb041
+    dark_dark: #212529
+    gray_100: #f8f9fa
+    gray_200: #e9ecef
+    gray_300: #dee2e6
+    gray_400: #ced4da
+    gray_500: #adb5bd
+    gray_600: #6c757d
+    gray_700: #495057
+    gray_800: #343a40
+    gray_900: #212529
+
+html
+    --system_font: system-ui, -apple-system
+    font-size: 62.5%
+    height: 100%
+    font-family: var(--system_font)
+* 
+    @p: 0
+    box-sizing: border-box
+    font-family: inherit
+img
+    object-fit: cover
+img,canvas
+    display: block
+body
+    display: flex
+    flex-direction: column
+    min-height: 100%
+    @bg: var(--primary)
+    font-size: 1.6rem
+body > main
+    @fg: 1
+a 
+    text-decoration: none
+    color: inherit
+h1 
+    @fw:500
+    font-size: max(32px, calc(1.9em + 0.6vw))
+h2 
+    @fw:500
+    font-size: max(26px, calc(1.6em + 0.4vw))
+h3 
+    @fw:500
+    font-size: max(22px, calc(1.3em + 0.3vw))
+h4 
+    @fw:500
+    font-size: max(18px, calc(1.1em + 0.2vw))
+h5 
+    @fw:500
+    font-size: 1em
+h6 
+    @fw:500
+    font-size: 14px
+
+.rflex
+    display:flex
+    &w ++ .rflex
+        flex-wrap: wrap
+    &r ++ .rflex
+        flex-direction: row-reverse
+        &w ++ .rflexr
+.cflex ++ .rflex
+    flex-direction: column
+    &w ++ .cflex
+    &r
+        flex-direction: column-reverse
+        &w ++ .cflexr
+.jc
+    &s 
+        justify-content: start
+    &e 
+        justify-content: end
+    &c 
+        justify-content: center
+    &sb 
+        justify-content: space-between
+    &sa 
+        justify-content: space-around
+    &se 
+        justify-content: space-evenly
+.ai
+    &s 
+        align-items: start
+    &e 
+        align-items: end
+    &c 
+        align-items: center
+.as
+    &s 
+        align-self: start
+    &e 
+        align-self: end
+    &c 
+        align-self: center
+    &st 
+        align-self: stretch
+
+.pos
+    &-ab
+        position:absolute
+    &-rel
+        position:relative
+    &-fix
+        position:fixed
+    &-sticky
+        position:sticky
+
+.btn ++ .pos-rel
+    font-size: 1.6rem
+    line-height: 1.3
+    text-transform: capitalize
+    letter-spacing: 1px
+    font-weight: 600
+    cursor: pointer
+    @p: 6px 24px
+    @bdr: 3px solid transparent
+    @bg: none
+    user-select,outline: none
+
+## Themes ##
+:root[data-theme="dark"]
+    --primary: var(--gray_900)
+    --secondary: var(--gray_800)
+    --prime_text: #dee2e6
+    --sec_text: #616a74
+    --panel_shadow: var(--gray_900)
