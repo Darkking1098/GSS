@@ -28,7 +28,7 @@ GSS is css pre-processor that makes styling more easy.
     cube:width,height (multiple properties)
     shadow:box-shadow
 ```
- - `@def` Define Colors (Use hex code only)
+ - `@def` Define Colors ## Use hex code only ##
 ```
 @color
     red:#FF0000
