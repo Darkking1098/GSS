@@ -85,3 +85,11 @@ h1
 h1 ++ .temp
     @bg:black
  ```
+  - `++` Property inheritance with screen size
+```
+.temp
+    @c:red
+    @br:10px
+h1 ++ @max-300-.temp
+    @bg:black
+ ```
