@@ -24,7 +24,7 @@ GSS in built with grapple, so you have to include grapple.js as well
 ```
 Link gss files to html and take rest
 ```
-    <link rel="gss/stylesheet" href="css/index.gss">
+<link rel="gss/stylesheet" href="css/index.gss">
 ```
 
  ### Functions
