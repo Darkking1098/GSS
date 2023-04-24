@@ -66,7 +66,15 @@ h1
             @c:black
             background:red
  ```
- - `@h-` Inline Hovering
+ - `&` Parent selector
+```
+h1
+    @c:red @h-@col/pink-90
+    &.title
+        background:black @h-red
+        @c:white @h-black
+ ```
+- `@h-` Inline Hovering
 ```
 h1
     @c:red @h-@col/pink-90
