@@ -69,3 +69,11 @@ h1
         background:black @h-red
         @c:white @h-black
  ```
+  - `@max-` `@min-` Inline screen sizes
+```
+h1
+    @c:red @max-300-@col/pink-90 ## @max for max screen size and 300 is 300px screen size ##
+    span
+        background:black @h-red
+        @c:white @h-black @min-300-@col/pink-90 ## @min for min screen size and 300 is 300px screen size ##
+ ```
