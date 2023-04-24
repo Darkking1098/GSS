@@ -77,3 +77,11 @@ h1
         background:black @h-red
         @c:white @h-black @min-300-@col/pink-90 ## @min for min screen size and 300 is 300px screen size ##
  ```
+  - `++` Property inheritance
+```
+.temp
+    @c:red
+    @br:10px
+h1 ++ .temp
+    @bg:black
+ ```
