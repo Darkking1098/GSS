@@ -19,7 +19,19 @@ GSS is css pre-processor that makes styling more easy.
  - inline screen size compatibility style props
  
  ### Functions
- - `extend` `++`
+ - `@def` Define short syntax
  ```
- .temp ++ .cool
+@def 
+    p:padding
+    px:padding-inline
+    br:border-radius
+    cube:width,height (multiple properties)
+    shadow:box-shadow
+```
+ - `@def` Define Colors (Use hex code only)
+```
+@color
+    red:#FF0000
+    pink:#FF00FF
+    blue:#0000FF
  ```
