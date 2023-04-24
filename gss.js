@@ -42,7 +42,7 @@
             let text = toStr(data);
             deploy(text);
         });
-        grapple.gss.style = [...grapple.gss.styles, ...STYLES];
+        // grapple.gss.styles = [...grapple.gss.styles, ...STYLES];
         STYLES = [];
         Object.keys(MAX_SIZE).forEach((k) => {
             let text = `@media screen and (max-width:${k}px){`;
@@ -111,13 +111,11 @@
         parent = parent.trim();
         for (let i = 0; i < child.length; i++) {
             let n = child[i];
-            console.log("--", n);
             if (!REG.test(n)) {
                 if (n.startsWith("&")) n = parent + n.substr(1);
                 else if (n.startsWith(":")) n = parent + n;
                 else n = parent + " " + n;
             }
-            console.log("->", n);
             child[i] = n;
         }
         return create_clusters(child);
@@ -158,6 +156,20 @@
         }
         return { selector, props, extend };
     }
+    function resolve_prop_name(prop) {
+        if (prop.startsWith("@")) {
+            let y = [],
+                x = prop.substr(1);
+            if (prop.includes("-")) {
+                x = x.split("-").map((t) => grapple.gss.def[t]);
+                y = [x[0] + "-" + x[1]];
+            } else if (prop.includes(",")) {
+                x = x.split(",");
+                x.forEach((m) => (y = [...y, ...grapple.gss.def[m]]));
+            }
+            return y;
+        } else return [prop];
+    }
     function render(data) {
         let elem = { node: data.selector, props: {} };
         elem.extend = data.extend;
@@ -167,9 +179,7 @@
             while ((x = val.match(COL_REG))) {
                 val = val.replace(COL_REG, getCol(x[0]));
             }
-            let props = prop.startsWith("@")
-                ? grapple.gss.def[prop.substr(1)]
-                : [prop];
+            let props = resolve_prop_name(prop);
             let vals = val.trim().split(" @");
             if (vals[0].startsWith("@")) {
                 val = "";
@@ -191,23 +201,29 @@
     }
     function addStyle(elem) {
         let p = false;
-        STYLES.forEach((style) => {
+        for (let j = 0; j < grapple.gss.styles.length; j++) {
+            const style = grapple.gss.styles[j];
             if (elem.extend.includes(style.node)) {
                 elem.props = { ...style.props, ...elem.props };
                 elem.extend.splice(elem.extend.indexOf(style.node), 1);
-            } else if (style.node == elem.node) {
+            }
+        }
+        for (let i = 0; i < STYLES.length; i++) {
+            const style = STYLES[i];
+            if (style.node == elem.node) {
                 style.props = { ...style.props, ...elem.props };
                 p = true;
             }
-        });
+        }
         if (elem.extend.length > 0) {
             resolve_size_extend(elem);
         }
-        // if (elem.extend) delete elem.extend;
-        if (!p) STYLES.push(elem);
+        if (!p) {
+            STYLES.push(elem);
+            grapple.gss.styles.push(elem);
+        }
     }
     function resolve_size_extend(elem) {
-        console.log(elem);
         elem.extend.forEach((ext) => {
             let x = ext.split("-");
             let props;
@@ -216,7 +232,6 @@
                     props = style.props;
                 }
             });
-            console.log(props);
             let el = { props };
             if (x[0] == "@max") {
                 if (!MAX_SIZE[x[1]]) MAX_SIZE[x[1]] = [];
@@ -227,8 +242,6 @@
                 el.node = elem.node;
                 MIN_SIZE[x[1]].push(el);
             }
-            console.log(MAX_SIZE);
-            console.log(MIN_SIZE);
         });
     }
     function resolve_vals(selector, [prop, data]) {
@@ -237,6 +250,13 @@
             let x = d.split("-");
             if (x[0] == "h") {
                 elem.node = selector + ":hover";
+                elem.extend = [];
+                prop.forEach((p) => {
+                    elem.props[p] = x[1];
+                });
+                addStyle(elem);
+            } else if (x[0] == "f") {
+                elem.node = selector + ":focus";
                 elem.extend = [];
                 prop.forEach((p) => {
                     elem.props[p] = x[1];
@@ -260,15 +280,12 @@
         });
     }
     function toStr(elem) {
-        let text = "";
-        text += elem.node + "{";
+        let text = elem.node + "{";
         let keys = Object.keys(elem.props);
-        if (keys.length == 0) return '';
-        for (let i = 0; i < keys.length; i++) {
+        if (keys.length == 0) return "";
+        for (let i = 0; i < keys.length; i++)
             text += keys[i] + ":" + elem.props[keys[i]] + ";";
-        }
-        text += "}";
-        return text;
+        return text + "}";
     }
     function deploy(text) {
         CONTAINER.append(text);
