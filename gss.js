@@ -132,7 +132,7 @@
             cluster.shift();
             for (let i = 0; i < cluster.length; i++) {
                 let b = cluster[i].split(":");
-                let bigint = parseInt(b[1].substr(1), 16);
+                let bigint = parseInt(b[1].trim().substr(1), 16);
                 let r = (bigint >> 16) & 255;
                 let g = (bigint >> 8) & 255;
                 let bl = bigint & 255;
