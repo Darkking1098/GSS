@@ -61,7 +61,7 @@ h1
             @c:black
             background:red
  ```
-    - `@h-` Inline Hovering
+ - `@h-` Inline Hovering
 ```
 h1
     @c:red @h-@col/pink-90
