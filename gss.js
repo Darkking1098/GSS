@@ -65,8 +65,8 @@
             STYLES.forEach((data) => {
                 text += toStr(data);
             });
+            deploy(text +"}");
             STYLES = [];
-            deploy(text);
         });
         STYLES = [];
         MAX_SIZE = {};
