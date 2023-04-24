@@ -25,10 +25,10 @@ GSS is css pre-processor that makes styling more easy.
     p:padding
     px:padding-inline
     br:border-radius
-    cube:width,height (multiple properties)
+    cube:width,height ## multiple properties ##
     shadow:box-shadow
 ```
- - `@def` Define Colors ## Use hex code only ##
+ - `@def` Define Colors (Use hex code only)
 ```
 @color
     red:#FF0000
