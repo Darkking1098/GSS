@@ -4,6 +4,11 @@
 
 GSS in built with grapple, so you have to include grapple.js as well
 
+```
+<script src="https://darkking1098.github.io/GSS/gss.js"></script>
+<script src="https://darkking1098.github.io/GSS/grapple.js"></script>
+```
+
 ### Grapple style sheets
 
 GSS is css pre-processor that makes styling more easy.
