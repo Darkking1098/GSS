@@ -28,8 +28,9 @@ GSS in built with grapple, so you have to include grapple.js as well
  ```
 @def 
     p:padding ## can be accessed as @p ##
-    px:padding-inline 
     br:border-radius 
+    t:top
+    l:left
     c:color 
     cube:width,height ## multiple properties ##
     shadow:box-shadow
@@ -45,6 +46,13 @@ GSS in built with grapple, so you have to include grapple.js as well
 ```
 .temp @br-10px ## Defined props can also be used inline ##
     @p:100px
+    margin:40px 20px
+ ```
+  - Using multiple props
+```
+.temp @br-10px
+    @p-t:100px ## resolved as padding-top ##
+    @t,l:10px ## resolved as top and left ##
     margin:40px 20px
  ```
    - `@col/color-opacity` Using defined Color
